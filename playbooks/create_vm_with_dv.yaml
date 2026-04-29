@@ -1,9 +1,12 @@
 - hosts: all  # Target all hosts in your inventory
   vars:
     namespace: workloads
-    vmname: fedora-httpd
-    password: ekoi-kgc5-8wxakh
+    vmname: fedora
+    password: password
+    storage_size: 30Gi
+    storageclass_name: netapp
     instancetype: u1.medium
+
   tasks:
   - name: Create project
     redhat.openshift.k8s:
@@ -13,6 +16,7 @@
         kind: Project
         metadata:
           name: "{{ namespace }}"
+
   - name: Create fedora virtual machine
     redhat.openshift_virtualization.kubevirt_vm:
       state: present
@@ -24,19 +28,41 @@
         name: "{{ instancetype }}"
       preference:
         name: fedora
+      data_volume_templates:
+        - metadata:
+           name: "{{ vmname }}-rootdisk"
+          spec:
+            sourceRef:
+              kind: DataSource
+              name: fedora
+              namespace: openshift-virtualization-os-images
+            storage:
+              accessModes:
+                - ReadWriteMany
+              resources:
+                requests:
+                  storage: "{{ storage_size }}"
+              storageClassName: "{{ storageclass_name }}"
       spec:
         domain:
           devices:
             interfaces:
               - name: default
                 masquerade: {}
+            disks:
+              - disk:
+                  bus: virtio
+                name: rootdisk
+              - disk:
+                  bus: virtio
+                name: cloudinit
         networks:
           - name: default
             pod: {}
         volumes:
-          - containerDisk:
-              image: quay.io/containerdisks/fedora:latest
-            name: containerdisk
+          - dataVolume:
+              name: "{{ vmname }}-rootdisk"
+            name: rootdisk
           - cloudInitNoCloud:
               userData: |-
                 #cloud-config
