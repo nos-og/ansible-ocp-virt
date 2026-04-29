@@ -2,12 +2,19 @@
   vars:
     namespace: workloads
     vmname: fedora
-    password: password
     storage_size: 30Gi
     storageclass_name: netapp
     instancetype: u1.medium
 
   tasks:
+    - name: Create a random_password 12-character string and format it
+      set_fact:
+        random_password: "{{ lookup('ansible.builtin.password', '/dev/null chars=ascii_letters,digits length=12') | regex_replace('(.{4})(.{4})(.{4})', '\\1-\\2-\\3') }}"
+
+    - name: Display the random_password
+      debug:
+        msg: "Generated password is: {{ random_password }}"
+
   - name: Create project
     redhat.openshift.k8s:
       state: present
@@ -67,7 +74,7 @@
               userData: |-
                 #cloud-config
                 user: fedora
-                password: "{{ password }}"
+                password: "{{ random_password }}"
                 chpasswd: { expire: False }
                 ssh_authorized_keys:
                 - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCvlKyJ1gK8v4YGl12hmz1Mq1QnA0FHnMgFD6dA0K/dKYM0uBlg/XtNH9G9xtoK7ifM1rK43pi0P7iQ7r9QNQIlggztrsYPMMjtGXt5R4Z8B5jWNIjQn4rAMghZbck016PJQ6P3R4787MXuZi339F/lP6FvA81el4Fm4aIVv5bbWyYWMjQ2aQDQb2zGh/GWYervcmV3+jjTK5MQzLOd70W5OIggicafze0dIWbLay9ks+5fGqX7klre8ZhOFWME806gJPoBjtfteD9RQ9Fgxio01gf8FuJSfhsuSz831nVmx7A6jjTGa3ExnVB1SCERyJoC5DjLeU4XmOAOozSfYYypnMHYoBhVvWGpYzHFEauUlekzJ30WBnMTXMqU7tg6LuQtL7RG329VCDvNy3/aHhb4NM4n79TB1v+s49yP6XxciuHeHK5VgqIG3D72LFS2+EM7bO8Y9onqgIXWB/DOh4mKroKBE8o3Tb9sPhX3C8xLZGkebTGW8kbcwIvd4pXUHVk= nos@tanzu-step
