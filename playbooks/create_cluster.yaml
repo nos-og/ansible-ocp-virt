@@ -1,0 +1,163 @@
+- hosts: all  # Target all hosts in your inventory
+  vars:
+    namespace: clusters
+    clustername: clustername
+  tasks:
+  - name: Create a secret for pullsecret
+    redhat.openshift.k8s:
+      state: present
+      definition:
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: pullsecret-cluster-{{ clustername }}
+          namespace: 'clusters'
+        type: kubernetes.io/dockerconfigjson
+        stringData:
+          '.dockerconfigjson': |-
+            {"auths":{"cloud.openshift.com":{"auth":"b3BlbnNoaWZ0LXJlbGVhc2UtZGV2K29jbV9hY2Nlc3NfN2QzOWU4NGRjZDk0NDE5NDliMTM0NmYzNTgxN2I2NzM6Nk5IRlgwVkpNTERMTVlPTEY4N0lGQVNEMkpHTlUwVTBSVjNWM01SUlRaTEI0RUg4OTVVUVNLOUtNQVZUWE0zUA==","email":"m-nara@netone.co.jp"},"quay.io":{"auth":"b3BlbnNoaWZ0LXJlbGVhc2UtZGV2K29jbV9hY2Nlc3NfN2QzOWU4NGRjZDk0NDE5NDliMTM0NmYzNTgxN2I2NzM6Nk5IRlgwVkpNTERMTVlPTEY4N0lGQVNEMkpHTlUwVTBSVjNWM01SUlRaTEI0RUg4OTVVUVNLOUtNQVZUWE0zUA==","email":"m-nara@netone.co.jp"},"registry.connect.redhat.com":{"auth":"fHVoYy1wb29sLTAyNDk4NjlkLWUyNmItNDBiNS1iYzA2LWFjYTYzMGU5NTZjMTpleUpoYkdjaU9pSlNVelV4TWlKOS5leUp6ZFdJaU9pSTJPVEU1WmpNMFlUUXhPR0kwWWprNE9HWTFNakJpTWpGbFpHSXhPVEk0WWlKOS5sUGV3bTlkWjdWYm5ocVp2cFhOd0k0OW9sT19FSXVtNG82b0Rvb21PbnVtMFhPVk03OVd4VXZfaDVsdHNtMTFGNG53a0JJRTR1bkpFS2R5NGNfZDZzQWdPRmN6QWpoYklRX1UtWms3Wmd4N0EtYzJQMlZlUHlTUjhudWxna0I3dmZieEtxZENZdXRxYXJDd21JMXpsU3Y0SGNreGhZMk56SlBMbFgyUHd0dm5CWDd2TXh4ZElyOEk0Tk0wZU1CN3haY3I3dDVfRDdVQlphQktPZ0s1NGlxRzhXNDI3REo5blZucUcyNlBnSTBZWVFyMWE4UzRCRTN3WHFndDkxalY1dm1fVTZOY3pWeExBQWU0Y083a21UUnFLQmJfSmZYN3RyZTBkblpMajZGUnFXeVByUkRfX2NhWDRiRVNsa1lPSzdIRTJqYW1VcUd2UWN1MWU5Ty15QmI3MjNTb1R3Mm5nRklKQ2xjSTE4SmtZZTVxYXJkUWpWMWFtNDcxMXpOVHlra3FucmZxUmRDemRSNWhZQTI0SFMtMXFLT3lxa194cE0wQlhiMHdVN0NaT1NJaEdkMWdXeV9mWUVwZ0k5aEVkYTY3Z1ZsN0djamNHT1ZpNXFybFBHUUFCMXp5LWtWOUU3Nm9wVEJHa0lnMW1BRVRaZTh0c3RVbktsak9ZWjV2OUVkbmJDODJYd2loRTVkVGRzVWcwc2NGMzhNUDBneWMzSXVJV29hRndTdUg2MlNBZWdRY2VUTEIzTUZoOVhqX3VXNzVCQXBvWFJwWDJNYTRoWmpGNnZKNFIwcEhkWFV5UUZWRGVzbHpRWnVYVWh5YURjbXVGdjJmSVFNT0FVa0VjZTJRTDRnYkJYNmRDOXNiUG1xWmtCemNzcmJHblJPcks2OEpWMS1raE9EYw==","email":"m-nara@netone.co.jp"},"registry.redhat.io":{"auth":"fHVoYy1wb29sLTAyNDk4NjlkLWUyNmItNDBiNS1iYzA2LWFjYTYzMGU5NTZjMTpleUpoYkdjaU9pSlNVelV4TWlKOS5leUp6ZFdJaU9pSTJPVEU1WmpNMFlUUXhPR0kwWWprNE9HWTFNakJpTWpGbFpHSXhPVEk0WWlKOS5sUGV3bTlkWjdWYm5ocVp2cFhOd0k0OW9sT19FSXVtNG82b0Rvb21PbnVtMFhPVk03OVd4VXZfaDVsdHNtMTFGNG53a0JJRTR1bkpFS2R5NGNfZDZzQWdPRmN6QWpoYklRX1UtWms3Wmd4N0EtYzJQMlZlUHlTUjhudWxna0I3dmZieEtxZENZdXRxYXJDd21JMXpsU3Y0SGNreGhZMk56SlBMbFgyUHd0dm5CWDd2TXh4ZElyOEk0Tk0wZU1CN3haY3I3dDVfRDdVQlphQktPZ0s1NGlxRzhXNDI3REo5blZucUcyNlBnSTBZWVFyMWE4UzRCRTN3WHFndDkxalY1dm1fVTZOY3pWeExBQWU0Y083a21UUnFLQmJfSmZYN3RyZTBkblpMajZGUnFXeVByUkRfX2NhWDRiRVNsa1lPSzdIRTJqYW1VcUd2UWN1MWU5Ty15QmI3MjNTb1R3Mm5nRklKQ2xjSTE4SmtZZTVxYXJkUWpWMWFtNDcxMXpOVHlra3FucmZxUmRDemRSNWhZQTI0SFMtMXFLT3lxa194cE0wQlhiMHdVN0NaT1NJaEdkMWdXeV9mWUVwZ0k5aEVkYTY3Z1ZsN0djamNHT1ZpNXFybFBHUUFCMXp5LWtWOUU3Nm9wVEJHa0lnMW1BRVRaZTh0c3RVbktsak9ZWjV2OUVkbmJDODJYd2loRTVkVGRzVWcwc2NGMzhNUDBneWMzSXVJV29hRndTdUg2MlNBZWdRY2VUTEIzTUZoOVhqX3VXNzVCQXBvWFJwWDJNYTRoWmpGNnZKNFIwcEhkWFV5UUZWRGVzbHpRWnVYVWh5YURjbXVGdjJmSVFNT0FVa0VjZTJRTDRnYkJYNmRDOXNiUG1xWmtCemNzcmJHblJPcks2OEpWMS1raE9EYw==","email":"m-nara@netone.co.jp"}}}
+
+  - name: Create a secret for ssh key
+    redhat.openshift.k8s:
+      state: present
+      definition:
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: sshkey-cluster-{{ clustername }}
+          namespace: 'clusters'
+        stringData:
+          'id_rsa.pub': ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCvlKyJ1gK8v4YGl12hmz1Mq1QnA0FHnMgFD6dA0K/dKYM0uBlg/XtNH9G9xtoK7ifM1rK43pi0P7iQ7r9QNQIlggztrsYPMMjtGXt5R4Z8B5jWNIjQn4rAMghZbck016PJQ6P3R4787MXuZi339F/lP6FvA81el4Fm4aIVv5bbWyYWMjQ2aQDQb2zGh/GWYervcmV3+jjTK5MQzLOd70W5OIggicafze0dIWbLay9ks+5fGqX7klre8ZhOFWME806gJPoBjtfteD9RQ9Fgxio01gf8FuJSfhsuSz831nVmx7A6jjTGa3ExnVB1SCERyJoC5DjLeU4XmOAOozSfYYypnMHYoBhVvWGpYzHFEauUlekzJ30WBnMTXMqU7tg6LuQtL7RG329VCDvNy3/aHhb4NM4n79TB1v+s49yP6XxciuHeHK5VgqIG3D72LFS2+EM7bO8Y9onqgIXWB/DOh4mKroKBE8o3Tb9sPhX3C8xLZGkebTGW8kbcwIvd4pXUHVk= nos@tanzu-step
+
+  - name: Create a Hosted Cluster
+    redhat.openshift.k8s:
+      state: present
+      definition:
+        apiVersion: hypershift.openshift.io/v1beta1
+        kind: HostedCluster
+        metadata:
+          name: {{ clustername }}
+          namespace: 'clusters'
+          labels:
+            "cluster.open-cluster-management.io/clusterset": 'default'
+        spec:
+          additionalTrustBundle:
+            name: user-ca-bundle
+          etcd:
+            managed:
+              storage:
+                persistentVolume:
+                  size: 8Gi
+                  storageClassName: netapp
+                type: PersistentVolume
+            managementType: Managed
+          release:
+            image: quay.io/openshift-release-dev/ocp-release:4.20.16-multi
+          pullSecret:
+            name: pullsecret-cluster-{{ clustername }}
+          sshKey:
+            name: sshkey-cluster-{{ clustername }}
+          networking:
+            clusterNetwork:
+              - cidr: 10.132.0.0/14
+            serviceNetwork:
+              - cidr: 172.31.0.0/16
+            networkType: OVNKubernetes
+          controllerAvailabilityPolicy: SingleReplica
+          infrastructureAvailabilityPolicy: SingleReplica
+          platform:
+            type: KubeVirt
+            kubevirt:
+              baseDomainPassthrough: true
+          infraID: {{ clustername }}
+          services:
+            - service: OAuthServer
+              servicePublishingStrategy:
+                type: Route
+            - service: OIDC
+              servicePublishingStrategy:
+                type: Route
+            - service: Konnectivity
+              servicePublishingStrategy:
+                type: Route
+            - service: Ignition
+              servicePublishingStrategy:
+                type: Route
+            - service: APIServer
+              servicePublishingStrategy:
+                type: LoadBalancer
+
+  - name: Create a NodePool
+    redhat.openshift.k8s:
+      state: present
+      definition:
+        apiVersion: hypershift.openshift.io/v1beta1
+        kind: NodePool
+        metadata:
+          name: '{{ clustername }}-nodepool'
+          namespace: 'clusters'
+        spec:
+          arch: amd64
+          clusterName: {{ clustername }}
+          replicas: 2
+          management:
+            autoRepair: false
+            upgradeType: Replace
+          platform:
+            type: KubeVirt
+            kubevirt:
+              compute:
+                cores: 2
+                memory: 8Gi
+              rootVolume:
+                type: Persistent
+                persistent:
+                  size: 32Gi
+                  storageClass: netapp
+              attachDefaultNetwork: true
+          release:
+            image: quay.io/openshift-release-dev/ocp-release:4.20.15-multi
+
+  - name: Create a ManagedCluster
+    redhat.openshift.k8s:
+      state: present
+      definition:
+        apiVersion: cluster.open-cluster-management.io/v1
+        kind: ManagedCluster
+        metadata:
+          annotations:
+            import.open-cluster-management.io/hosting-cluster-name: local-cluster
+            import.open-cluster-management.io/klusterlet-deploy-mode: Hosted
+            open-cluster-management/created-via: hypershift
+          labels:
+            cloud: BareMetal
+            vendor: OpenShift
+            name: {{ clustername }}
+            cluster.open-cluster-management.io/clusterset: 'default'
+          name: {{ clustername }}
+        spec:
+          hubAcceptsClient: true
+
+  - name: Create a KlusterletAddonConfig
+    redhat.openshift.k8s:
+      state: present
+      definition:
+        apiVersion: agent.open-cluster-management.io/v1
+        kind: KlusterletAddonConfig
+        metadata:
+          name: {{ clustername }}
+          namespace: {{ clustername }}
+        spec:
+          clusterName: {{ clustername }}
+          clusterNamespace: {{ clustername }}
+          clusterLabels:
+            cloud: BareMetal
+            vendor: OpenShift
+          applicationManager:
+            enabled: true
+          policyController:
+            enabled: true
+          searchCollector:
+            enabled: true
+          certPolicyController:
+            enabled: true
