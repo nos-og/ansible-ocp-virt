@@ -1,5 +1,5 @@
-- hosts: namespace_workloads
-  become: true  # Run tasks with root privileges
+- hosts: "{{ namespace }}-{{ vmname }}"
+  become: true
   tasks:
     - name: Install httpd package
       ansible.builtin.package:

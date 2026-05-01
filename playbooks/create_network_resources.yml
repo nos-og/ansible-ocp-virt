@@ -1,4 +1,4 @@
-- hosts: all  # Target all hosts in your inventory
+- hosts: all
   tasks:
   - name: Create a httpd service
     redhat.openshift.k8s:
@@ -8,7 +8,7 @@
         kind: Service
         metadata:
           name: httpd-svc
-          namespace: workloads
+          namespace: "{{ namespace }}"
         spec:
           selector:
             app: httpd
@@ -26,7 +26,7 @@
         apiVersion: route.openshift.io/v1
         metadata:
           name: httpd-route
-          namespace: workloads
+          namespace: "{{ namespace }}"
         spec:
           to:
             kind: Service
