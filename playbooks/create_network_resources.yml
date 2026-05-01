@@ -17,7 +17,7 @@
               protocol: TCP
               port: 80
               targetPort: 80
-  
+
   - name: Create a httpd route
     redhat.openshift.k8s:
       state: present

@@ -1,4 +1,4 @@
-- hosts: all  # Target all hosts in your inventory
+- hosts: all
   vars:
     namespace: clusters
     clustername: clustername
@@ -10,7 +10,7 @@
         apiVersion: v1
         kind: Secret
         metadata:
-          name: pullsecret-cluster-{{ clustername }}
+          name: 'pullsecret-cluster-{{ clustername }}'
           namespace: 'clusters'
         type: kubernetes.io/dockerconfigjson
         stringData:
@@ -24,7 +24,7 @@
         apiVersion: v1
         kind: Secret
         metadata:
-          name: sshkey-cluster-{{ clustername }}
+          name: 'sshkey-cluster-{{ clustername }}'
           namespace: 'clusters'
         stringData:
           'id_rsa.pub': ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCvlKyJ1gK8v4YGl12hmz1Mq1QnA0FHnMgFD6dA0K/dKYM0uBlg/XtNH9G9xtoK7ifM1rK43pi0P7iQ7r9QNQIlggztrsYPMMjtGXt5R4Z8B5jWNIjQn4rAMghZbck016PJQ6P3R4787MXuZi339F/lP6FvA81el4Fm4aIVv5bbWyYWMjQ2aQDQb2zGh/GWYervcmV3+jjTK5MQzLOd70W5OIggicafze0dIWbLay9ks+5fGqX7klre8ZhOFWME806gJPoBjtfteD9RQ9Fgxio01gf8FuJSfhsuSz831nVmx7A6jjTGa3ExnVB1SCERyJoC5DjLeU4XmOAOozSfYYypnMHYoBhVvWGpYzHFEauUlekzJ30WBnMTXMqU7tg6LuQtL7RG329VCDvNy3/aHhb4NM4n79TB1v+s49yP6XxciuHeHK5VgqIG3D72LFS2+EM7bO8Y9onqgIXWB/DOh4mKroKBE8o3Tb9sPhX3C8xLZGkebTGW8kbcwIvd4pXUHVk= nos@tanzu-step
@@ -36,7 +36,7 @@
         apiVersion: hypershift.openshift.io/v1beta1
         kind: HostedCluster
         metadata:
-          name: {{ clustername }}
+          name: '{{ clustername }}'
           namespace: 'clusters'
           labels:
             "cluster.open-cluster-management.io/clusterset": 'default'
@@ -54,9 +54,9 @@
           release:
             image: quay.io/openshift-release-dev/ocp-release:4.20.16-multi
           pullSecret:
-            name: pullsecret-cluster-{{ clustername }}
+            name: 'pullsecret-cluster-{{ clustername }}'
           sshKey:
-            name: sshkey-cluster-{{ clustername }}
+            name: 'sshkey-cluster-{{ clustername }}'
           networking:
             clusterNetwork:
               - cidr: 10.132.0.0/14
@@ -69,7 +69,7 @@
             type: KubeVirt
             kubevirt:
               baseDomainPassthrough: true
-          infraID: {{ clustername }}
+          infraID: '{{ clustername }}'
           services:
             - service: OAuthServer
               servicePublishingStrategy:
@@ -98,7 +98,7 @@
           namespace: 'clusters'
         spec:
           arch: amd64
-          clusterName: {{ clustername }}
+          clusterName: '{{ clustername }}'
           replicas: 2
           management:
             autoRepair: false
@@ -132,9 +132,9 @@
           labels:
             cloud: BareMetal
             vendor: OpenShift
-            name: {{ clustername }}
+            name: '{{ clustername }}'
             cluster.open-cluster-management.io/clusterset: 'default'
-          name: {{ clustername }}
+          name: '{{ clustername }}'
         spec:
           hubAcceptsClient: true
 
@@ -145,11 +145,11 @@
         apiVersion: agent.open-cluster-management.io/v1
         kind: KlusterletAddonConfig
         metadata:
-          name: {{ clustername }}
-          namespace: {{ clustername }}
+          name: '{{ clustername }}'
+          namespace: '{{ clustername }}'
         spec:
-          clusterName: {{ clustername }}
-          clusterNamespace: {{ clustername }}
+          clusterName: '{{ clustername }}'
+          clusterNamespace: '{{ clustername }}'
           clusterLabels:
             cloud: BareMetal
             vendor: OpenShift
