@@ -1,24 +1,223 @@
+# playbook: scan_images.yml
+---
 - hosts: all  # Target all hosts in your inventory
-  tasks:
-  - name: 全NamespaceのPodイメージ一覧を取得
-    kubernetes.core.k8s_info:
-      api_version: v1
-      kind: Pod
-    register: pods
-  - name: 重複を除いたイメージリスト作成
-    set_fact:
-      unique_images: "{{ pods.resources | map(attribute='spec.containers')
-                        | flatten | map(attribute='image') | unique | list }}"
-  - name: Trivyでスキャン実行
-    command: "trivy image --severity CRITICAL,HIGH --format json {{ item }}"
-    loop: "{{ unique_images }}"
-    register: scan_results
-  - name: CRITICAL CVEを持つイメージを抽出
-    set_fact:
-      vulnerable_images: "{{ scan_results.results | selectattr('rc', 'eq', 0)
-                            | ... }}"
-  - name: スキャン結果をレポートとして出力
-    template:
-      src: vulnerability_report.j2
-      dest: /tmp/vuln_report_{{ ansible_date_time.iso8601 }}.html
+  gather_facts: false
 
+  vars:
+    scan_namespace: "trivy-scan"
+    trivy_image: "aquasec/trivy:0.57.0"
+    severity: "CRITICAL,HIGH"
+    registry_host: "image-registry.openshift-image-registry.svc:5000"
+    target_namespaces:
+    - "production"
+    - "staging"
+
+  tasks:
+    # -------------------------------------------------------
+    # 準備
+    # -------------------------------------------------------
+    - name: Create namespace for trivy-scan
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ scan_namespace }}"
+    - name: Create ServiceAccount for tirvy-scan
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ServiceAccount
+          metadata:
+            name: trivy-scanner
+            namespace: "{{ scan_namespace }}"
+
+    - name: 対象Namespaceのimage-pullerロールをSAに付与
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: RoleBinding
+          metadata:
+            name: trivy-scanner-image-puller
+            namespace: "{{ item }}"
+          subjects:
+            - kind: ServiceAccount
+              name: trivy-scanner
+              namespace: "{{ scan_namespace }}"
+          roleRef:
+            kind: ClusterRole
+            apiGroup: rbac.authorization.k8s.io
+            name: system:image-puller
+      loop: "{{ target_namespaces }}"
+
+    - name: anyuid SCCをTrivy SAに付与
+      command: >
+        oc adm policy add-scc-to-user anyuid
+        -z trivy-scanner -n {{ scan_namespace }}
+
+    # -------------------------------------------------------
+    # スキャン対象イメージの収集（指定Namespaceのみ）
+    # -------------------------------------------------------
+    - name: 指定NamespaceごとにRunning Podを取得
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Pod
+        namespace: "{{ item }}"
+        field_selectors:
+          - status.phase=Running
+      loop: "{{ target_namespaces }}"
+      register: pods_per_namespace
+
+    - name: 全結果を結合して重複排除したイメージリストを作成
+      set_fact:
+        unique_images: >-
+          {{
+            pods_per_namespace.results
+            | map(attribute='resources') | flatten
+            | map(attribute='spec.containers') | flatten
+            | map(attribute='image') | unique | list
+          }}
+
+    - name: スキャン対象を表示
+      debug:
+        msg:
+          - "対象Namespace: {{ target_namespaces | join(', ') }}"
+          - "スキャン対象イメージ: {{ unique_images | length }}件"
+          - "{{ unique_images }}"
+
+    # -------------------------------------------------------
+    # Trivy Job を並列起動
+    # -------------------------------------------------------
+    - name: イメージごとにTrivy Jobを作成
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: batch/v1
+          kind: Job
+          metadata:
+            name: "trivy-scan-{{ item | regex_replace('[^a-z0-9]', '-') | truncate(50, True, '') }}"
+            namespace: "{{ scan_namespace }}"
+            labels:
+              app: trivy-scan
+              scan-id: "{{ ansible_date_time.epoch }}"
+          spec:
+            ttlSecondsAfterFinished: 600
+            template:
+              spec:
+                serviceAccountName: trivy-scanner
+                restartPolicy: Never
+                containers:
+                  - name: trivy
+                    image: "{{ trivy_image }}"
+                    args:
+                      - image
+                      - "--severity={{ severity }}"
+                      - "--format=json"
+                      - "--exit-code=0"
+                      - "--no-progress"
+                      - "{{ item }}"
+                    env:
+                      - name: TRIVY_INSECURE
+                        value: "true"
+                    resources:
+                      requests:
+                        memory: "256Mi"
+                        cpu: "100m"
+                      limits:
+                        memory: "512Mi"
+                        cpu: "500m"
+      loop: "{{ unique_images }}"
+      register: created_jobs
+
+    # -------------------------------------------------------
+    # Job完了待機
+    # -------------------------------------------------------
+    - name: 全Jobの完了を待機（最大10分）
+      kubernetes.core.k8s_info:
+        api_version: batch/v1
+        kind: Job
+        namespace: "{{ scan_namespace }}"
+        label_selectors:
+          - "scan-id={{ ansible_date_time.epoch }}"
+      register: job_status
+      until: >-
+        job_status.resources | map(attribute='status') |
+        selectattr('active', 'defined') | list | length == 0
+      retries: 60
+      delay: 10
+
+    # -------------------------------------------------------
+    # 結果の収集と解析
+    # -------------------------------------------------------
+    - name: 完了したJobのログを取得
+      kubernetes.core.k8s_log:
+        namespace: "{{ scan_namespace }}"
+        label_selectors:
+          - "job-name={{ item.metadata.name }}"
+      loop: "{{ job_status.resources }}"
+      register: scan_logs
+
+    - name: JSONログをパースして脆弱性を抽出
+      set_fact:
+        all_vulnerabilities: >-
+          {{
+            all_vulnerabilities | default([]) +
+            (item.log | from_json).Results | default([])
+            | selectattr('Vulnerabilities', 'defined')
+            | map(attribute='Vulnerabilities') | flatten
+            | selectattr('Severity', 'in', ['CRITICAL', 'HIGH'])
+            | map('combine', {'image': item.item.metadata.labels['job-name']})
+            | list
+          }}
+      loop: "{{ scan_logs.results }}"
+      when: item.log | length > 0
+
+    # -------------------------------------------------------
+    # レポート生成
+    # -------------------------------------------------------
+    - name: スキャンサマリーを表示
+      debug:
+        msg:
+          - "=== スキャン完了 ==="
+          - "対象Namespace: {{ target_namespaces | join(', ') }}"
+          - "スキャンイメージ数: {{ unique_images | length }}"
+          - "CRITICAL: {{ all_vulnerabilities | selectattr('Severity', 'eq', 'CRITICAL') | list | length }}件"
+          - "HIGH: {{ all_vulnerabilities | selectattr('Severity', 'eq', 'HIGH') | list | length }}件"
+
+    - name: HTMLレポートを生成
+      template:
+        src: templates/vulnerability_report.html.j2
+        dest: "/tmp/trivy_report_{{ ansible_date_time.iso8601_basic_short }}.html"
+
+    - name: 脆弱イメージのリストを次のPlaybook向けに保存
+      set_fact:
+        vulnerable_images_for_patch: >-
+          {{
+            all_vulnerabilities
+            | selectattr('Severity', 'eq', 'CRITICAL')
+            | map(attribute='image') | unique | list
+          }}
+
+    - name: レポート内容をArtifactに登録
+      set_stats:
+        data:
+          report_path: "/tmp/trivy_report_{{ ansible_date_time.iso8601_basic_short }}.html"
+          critical_count: "{{ critical_count }}"
+          high_count: "{{ high_count }}"
+
+    # -------------------------------------------------------
+    # クリーンアップ
+    # -------------------------------------------------------
+    - name: スキャンJobを削除
+      kubernetes.core.k8s:
+        state: absent
+        definition:
+          apiVersion: batch/v1
+          kind: Job
+          metadata:
+            name: "{{ item.metadata.name }}"
+            namespace: "{{ scan_namespace }}"
+      loop: "{{ job_status.resources }}"
