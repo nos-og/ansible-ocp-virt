@@ -115,6 +115,8 @@
             labels:
               app: trivy-scan
               scan-id: "{{ ansible_date_time.epoch }}"
+            annotations:
+              target-image: "{{ item }}"
           spec:
             ttlSecondsAfterFinished: 600
             template:
@@ -179,11 +181,11 @@
         all_vulnerabilities: >-
           {{
             all_vulnerabilities | default([]) +
-            (item.log | from_json).Results | default([])
+            (item.log | trim | from_json).Results | default([])
             | selectattr('Vulnerabilities', 'defined')
             | map(attribute='Vulnerabilities') | flatten
             | selectattr('Severity', 'in', ['CRITICAL', 'HIGH'])
-            | map('combine', {'image': item.item.metadata.labels['job-name']})
+            | map('combine', {'image': item.item.metadata.annotations['target-image']})
             | list
           }}
       loop: "{{ scan_logs.results }}"
