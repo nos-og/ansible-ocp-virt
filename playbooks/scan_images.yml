@@ -54,9 +54,21 @@
       loop: "{{ target_namespaces }}"
 
     - name: anyuid SCCをTrivy SAに付与
-      command: >
-        oc adm policy add-scc-to-user anyuid
-        -z trivy-scanner -n {{ scan_namespace }}
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: ClusterRoleBinding
+          metadata:
+            name: trivy-scanner-anyuid-scc
+          subjects:
+            - kind: ServiceAccount
+              name: trivy-scanner
+              namespace: "{{ scan_namespace }}"
+          roleRef:
+            kind: ClusterRole
+            apiGroup: rbac.authorization.k8s.io
+            name: system:openshift:scc:anyuid
 
     # -------------------------------------------------------
     # スキャン対象イメージの収集（指定Namespaceのみ）
