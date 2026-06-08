@@ -129,6 +129,8 @@
                       - "--severity={{ severity }}"
                       - "--format=json"
                       - "--exit-code=0"
+                      - "--quiet"
+                      - "--scanners=vuln"
                       - "--no-progress"
                       - "{{ item }}"
                     env:
@@ -185,7 +187,9 @@
             | list
           }}
       loop: "{{ scan_logs.results }}"
-      when: item.log | length > 0
+      when:
+        - item.log | length > 0
+        - item.log | trim | first == '{'   # ← JSONの先頭チェック
 
     # -------------------------------------------------------
     # レポート生成
