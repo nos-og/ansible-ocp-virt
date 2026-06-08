@@ -1,0 +1,24 @@
+- hosts: all  # Target all hosts in your inventory
+  tasks:
+  - name: 全NamespaceのPodイメージ一覧を取得
+    kubernetes.core.k8s_info:
+      api_version: v1
+      kind: Pod
+    register: pods
+  - name: 重複を除いたイメージリスト作成
+    set_fact:
+      unique_images: "{{ pods.resources | map(attribute='spec.containers')
+                        | flatten | map(attribute='image') | unique | list }}"
+  - name: Trivyでスキャン実行
+    command: "trivy image --severity CRITICAL,HIGH --format json {{ item }}"
+    loop: "{{ unique_images }}"
+    register: scan_results
+  - name: CRITICAL CVEを持つイメージを抽出
+    set_fact:
+      vulnerable_images: "{{ scan_results.results | selectattr('rc', 'eq', 0)
+                            | ... }}"
+  - name: スキャン結果をレポートとして出力
+    template:
+      src: vulnerability_report.j2
+      dest: /tmp/vuln_report_{{ ansible_date_time.iso8601 }}.html
+
