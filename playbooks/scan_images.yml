@@ -223,8 +223,8 @@
       set_stats:
         data:
           report_path: "/tmp/trivy_report_{{ ansible_date_time.iso8601_basic_short }}.html"
-          critical_count: "{{ critical_count }}"
-          high_count: "{{ high_count }}"
+          critical_count: "{{ (all_vulnerabilities | default([])) | selectattr('Severity', 'eq', 'CRITICAL') | list | length }}"
+          high_count: "{{ (all_vulnerabilities | default([])) | selectattr('Severity', 'eq', 'HIGH') | list | length }}"
 
     # -------------------------------------------------------
     # クリーンアップ
