@@ -2,6 +2,7 @@
   vars:
     namespace: clusters
     clustername: clustername
+    ssh_public_ke: none
   tasks:
   - name: Create a secret for pullsecret
     redhat.openshift.k8s:
