@@ -19,11 +19,11 @@
             name: "vlan-{{ vlan_id }}"
             namespace: "{{ namespace }}"
           spec:
-            config: |
-              {
+            config: '{
                 "cniVersion": "0.3.1",
-                "name": "vlan-{{ vlan_id }}",
                 "type": "cnv-bridge",
+                "name": "vlan-{{ vlan_id }}",
+                "vlan": {{ vlan_id }},
                 "bridge": "{{ bridge }}",
                 "ipam": {}
-              }
+              }'
