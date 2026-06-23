@@ -1,0 +1,22 @@
+- hosts: all  # Target all hosts in your inventory
+  vars:
+    namespace: workloads
+    vmname: fedora-httpd
+
+  tasks:
+  - name: Delete VirtualMachine
+    redhat.openshift_virtualization.kubevirt_vm:
+      state: absent
+      name: "{{ vmname }}"
+      namespace: "{{ namespace }}"
+      wait: true
+  - name: Wait until VM disappears
+    kubernetes.core.k8s_info:
+      api_version: kubevirt.io/v1
+      kind: VirtualMachine
+      name: "{{ vmname }}"
+      namespace: "{{ namespace }}"
+    register: vm_info
+    until: vm_info.resources | length == 0
+    retries: 60
+    delay: 5

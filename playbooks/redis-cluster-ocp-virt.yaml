@@ -67,7 +67,7 @@
     - "{{ redis_vms }}"
 
   - name: Create redis virtual machines
-    kubevirt.core.kubevirt_vm:
+    redhat.openshift_virtualization.kubevirt_vm:
       state: present
       name: "{{ item }}"
       namespace: "{{ project }}"
