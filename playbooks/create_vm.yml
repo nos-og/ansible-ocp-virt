@@ -4,6 +4,7 @@
     vmname: fedora-httpd
     password: ekoi-kgc5-8wxakh
     instancetype: u1.medium
+    ssh_public_key: null
   tasks:
   - name: Create project
     redhat.openshift.k8s:
