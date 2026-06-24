@@ -61,7 +61,7 @@
                 type: PersistentVolume
             managementType: Managed
           release:
-            image: '{{ node_image }'
+            image: '{{ node_image }}'
           pullSecret:
             name: 'pullsecret-cluster-{{ clustername }}'
           sshKey:
