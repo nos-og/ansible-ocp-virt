@@ -1,10 +1,11 @@
 - hosts: all  # Target all hosts in your inventory
   vars:
-    namespace: workloads
-    vmname: fedora-httpd
-    password: ekoi-kgc5-8wxakh
+    namespace: null
+    vmname: null
+    password: null
     instancetype: u1.medium
     ssh_public_key: null
+    vm_image: null
   tasks:
   - name: Create project
     redhat.openshift.k8s:
@@ -36,7 +37,7 @@
             pod: {}
         volumes:
           - containerDisk:
-              image: quay.io/containerdisks/fedora:latest
+              image: '{{ vm_image }}'
             name: containerdisk
           - cloudInitNoCloud:
               userData: |-
