@@ -61,7 +61,7 @@
                 type: PersistentVolume
             managementType: Managed
           release:
-            image: quay.io/openshift-release-dev/ocp-release:4.20.16-multi
+            image: '{{ node_image }'
           pullSecret:
             name: 'pullsecret-cluster-{{ clustername }}'
           sshKey:
@@ -126,7 +126,6 @@
               attachDefaultNetwork: true
           release:
             image: '{{ node_image }}'
-            #image: quay.io/openshift-release-dev/ocp-release:4.20.15-multi
 
   - name: Create a ManagedCluster
     redhat.openshift.k8s:
