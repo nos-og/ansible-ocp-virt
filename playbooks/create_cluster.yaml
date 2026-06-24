@@ -3,7 +3,15 @@
     namespace: clusters
     clustername: clustername
     ssh_public_ke: none
+    storage_class: netapp
+    availability_policy: SingleReplica
+    node_replicas: 2
+    node_cpus: 2
+    node_ram: 8
+    node_image: quay.io/openshift-release-dev/ocp-release:4.20.15-multi
+
   tasks:
+
   - name: Create a secret for pullsecret
     redhat.openshift.k8s:
       state: present
@@ -49,7 +57,7 @@
               storage:
                 persistentVolume:
                   size: 8Gi
-                  storageClassName: netapp
+                  storageClassName: '{{ storage_class }}'
                 type: PersistentVolume
             managementType: Managed
           release:
@@ -64,8 +72,8 @@
             serviceNetwork:
               - cidr: 172.31.0.0/16
             networkType: OVNKubernetes
-          controllerAvailabilityPolicy: SingleReplica
-          infrastructureAvailabilityPolicy: SingleReplica
+          controllerAvailabilityPolicy: '{{ availability_policy }}'
+          infrastructureAvailabilityPolicy: '{{ availability_policy }}'
           platform:
             type: KubeVirt
             kubevirt:
@@ -100,7 +108,7 @@
         spec:
           arch: amd64
           clusterName: '{{ clustername }}'
-          replicas: 2
+          replicas: '{{ node_replicas }}'
           management:
             autoRepair: false
             upgradeType: Replace
@@ -108,16 +116,17 @@
             type: KubeVirt
             kubevirt:
               compute:
-                cores: 2
-                memory: 8Gi
+                cores: '{{ node_cpus }}'
+                memory: '{{ node_ram }}Gi'
               rootVolume:
                 type: Persistent
                 persistent:
                   size: 32Gi
-                  storageClass: netapp
+                  storageClass: '{{ storage_class }}'
               attachDefaultNetwork: true
           release:
-            image: quay.io/openshift-release-dev/ocp-release:4.20.15-multi
+            image: '{{ node_image }}'
+            #image: quay.io/openshift-release-dev/ocp-release:4.20.15-multi
 
   - name: Create a ManagedCluster
     redhat.openshift.k8s:
